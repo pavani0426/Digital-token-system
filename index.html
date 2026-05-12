@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SmartToken Bank — Queue Notification System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#060d1a;--surface:#0d1829;--card:#111f35;--border:#1e3250;--teal:#00c9a7;--teal2:#009e84;--gold:#f0b429;--gold2:#c8922a;--red:#ff4d6d;--blue:#4a9eff;--text:#e8f0fe;--muted:#6b84a8;--soft:#8fa8c8;--radius:14px;--shadow:0 8px 32px rgba(0,0,0,0.4)}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Instrument Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 15% 10%,rgba(0,201,167,.1) 0%,transparent 55%),radial-gradient(ellipse 50% 40% at 85% 85%,rgba(240,180,41,.08) 0%,transparent 50%);pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,201,167,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,201,167,.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+#notifStack{position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:.6rem;max-width:320px}
+.npop{background:var(--surface);border-radius:14px;padding:1rem 1.2rem;box-shadow:0 8px 32px rgba(0,0,0,.7);display:flex;gap:.8rem;align-items:flex-start;animation:slideIn .4s ease;position:relative;overflow:hidden;border-left:4px solid var(--teal)}
+.npop.n10{border-left-color:var(--gold)}.npop.n5{border-left-color:var(--red)}.npop.nnow{border-left-color:var(--teal)}.npop.nconf{border-left-color:var(--blue)}
+.ni{font-size:1.5rem;flex-shrink:0}.nb{flex:1}
+.nt{font-family:'Syne',sans-serif;font-weight:700;font-size:.82rem;margin-bottom:.2rem}
+.nm{font-size:.75rem;color:var(--soft);line-height:1.45}
+.ns{font-size:.68rem;color:var(--muted);margin-top:.25rem}
+.nc{position:absolute;top:.4rem;right:.5rem;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem}
+.nbar{position:absolute;bottom:0;left:0;height:3px;animation:nbar 7s linear forwards}
+.ng{background:var(--gold)}.nr{background:var(--red)}.ntl{background:var(--teal)}.nbl{background:var(--blue)}
+@keyframes slideIn{from{opacity:0;transform:translateX(50px)}to{opacity:1;transform:translateX(0)}}
+@keyframes nbar{from{width:100%}to{width:0}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.6)}}
+@keyframes popIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+@keyframes urgP{0%,100%{box-shadow:0 0 0 0 rgba(255,77,109,.2)}50%{box-shadow:0 0 0 10px rgba(255,77,109,0)}}
+.page{display:none;position:relative;z-index:1;min-height:100vh}.page.active{display:flex}
+#authPage{align-items:center;justify-content:center;padding:2rem}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:2.8rem 2.4rem;width:min(430px,100%);box-shadow:var(--shadow);position:relative;overflow:hidden}
+.auth-card::before{content:'';position:absolute;top:-60px;right:-60px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(0,201,167,.12),transparent 70%);pointer-events:none}
+.alogo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.5rem;text-align:center;margin-bottom:.3rem}
+.alogo span{color:var(--teal)}.alogo em{color:var(--gold);font-style:normal}
+.asub{text-align:center;font-size:.8rem;color:var(--muted);margin-bottom:2rem}
+.tab-row{display:flex;background:var(--card);border-radius:10px;padding:4px;gap:4px;margin-bottom:2rem}
+.tab{flex:1;text-align:center;padding:.55rem;border-radius:8px;font-family:'Syne',sans-serif;font-weight:600;font-size:.82rem;cursor:pointer;color:var(--muted);transition:all .2s;border:none;background:transparent}
+.tab.active{background:var(--teal);color:#060d1a}
+.fg{margin-bottom:1.2rem}
+label{display:block;font-size:.75rem;font-weight:600;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;margin-bottom:.45rem}
+input,select{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);padding:.78rem 1rem;border-radius:10px;font-family:'Instrument Sans',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s,box-shadow .2s}
+input::placeholder{color:var(--muted)}
+input:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,201,167,.12)}
+select option{background:var(--card)}
+.btn{width:100%;padding:.85rem;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;cursor:pointer;transition:all .2s;margin-top:.5rem}
+.btn-t{background:linear-gradient(135deg,var(--teal),var(--teal2));color:#060d1a}
+.btn-t:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(0,201,167,.35)}
+.btn-g{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#060d1a}
+.btn-g:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(240,180,41,.3)}
+.btn-o{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-o:hover{border-color:var(--teal);color:var(--teal)}
+.btn-r{background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.3);color:var(--red)}
+.aerr{color:var(--red);font-size:.8rem;margin-top:.8rem;text-align:center;display:none}
+#appPage{flex-direction:column}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;background:rgba(13,24,41,.9);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);position:sticky;top:0;z-index:50;gap:.8rem;flex-wrap:wrap}
+.tlogo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem}
+.tlogo span{color:var(--teal)}.tlogo em{color:var(--gold);font-style:normal}
+.tr{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}
+.av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--blue));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:.82rem;color:#060d1a;flex-shrink:0}
+.un{font-size:.85rem;font-weight:500}.ur{font-size:.7rem;color:var(--muted)}
+.lbtn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.38rem .85rem;border-radius:8px;cursor:pointer;font-size:.75rem;transition:all .2s}
+.lbtn:hover{border-color:var(--red);color:var(--red)}
+.clk{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.32rem .85rem;font-family:'Syne',sans-serif;font-size:.82rem;color:var(--teal);letter-spacing:.5px}
+/* SMS STATUS */
+.sms-status{display:flex;align-items:center;gap:.4rem;font-size:.72rem;padding:.3rem .8rem;border-radius:999px;border:1px solid;font-weight:600}
+.sms-on{color:var(--teal);border-color:rgba(0,201,167,.3);background:rgba(0,201,167,.08)}
+.sms-off{color:var(--muted);border-color:var(--border);background:var(--card)}
+.sdot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.2s infinite}
+.nav-tabs{display:flex;gap:.4rem;padding:1rem 2rem .4rem;overflow-x:auto}
+.nav-tab{padding:.5rem 1.1rem;border-radius:8px;font-family:'Syne',sans-serif;font-weight:600;font-size:.8rem;cursor:pointer;color:var(--muted);border:1px solid transparent;background:transparent;white-space:nowrap;transition:all .2s}
+.nav-tab.active{background:rgba(0,201,167,.12);color:var(--teal);border-color:rgba(0,201,167,.25)}
+.nav-tab:hover:not(.active){color:var(--text);border-color:var(--border)}
+.panel{display:none;padding:1.4rem 2rem 4rem}.panel.active{display:block}
+.ptitle{font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;margin-bottom:.25rem}
+.psub{color:var(--muted);font-size:.86rem;margin-bottom:1.8rem}
+.fcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.8rem;max-width:600px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+@media(max-width:540px){.frow{grid-template-columns:1fr}}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:.7rem;margin-bottom:1.4rem}
+.sopt{border:1px solid var(--border);border-radius:10px;padding:.85rem .6rem;text-align:center;cursor:pointer;transition:all .2s;background:var(--card)}
+.sopt:hover{border-color:var(--teal)}.sopt.sel{border-color:var(--teal);background:rgba(0,201,167,.1)}
+.sopt .si{font-size:1.3rem;margin-bottom:.35rem}.sopt .sn{font-size:.68rem;font-weight:600;color:var(--soft)}
+.tres{background:var(--card);border:1px solid rgba(0,201,167,.25);border-radius:14px;padding:1.8rem;text-align:center;margin-top:1.4rem;display:none;animation:popIn .4s ease}
+.tbig{font-family:'Syne',sans-serif;font-size:3.5rem;font-weight:800;color:var(--gold);text-shadow:0 0 30px rgba(240,180,41,.4);line-height:1}
+.trow{display:flex;justify-content:center;gap:1.5rem;margin-top:.9rem;flex-wrap:wrap}
+.tii{font-size:.78rem;color:var(--muted)}.tii strong{display:block;color:var(--text);font-size:.9rem;margin-top:.15rem}
+.cbadge{display:inline-flex;align-items:center;gap:1rem;background:rgba(0,201,167,.07);border:1px solid rgba(0,201,167,.2);border-radius:12px;padding:.75rem 1.3rem;margin-top:.9rem;flex-wrap:wrap;justify-content:center}
+.cnum{font-family:'Syne',sans-serif;font-size:1.9rem;font-weight:800;color:var(--teal);line-height:1}
+.cbadge.urg .cnum{color:var(--red)}.cbadge.wrn .cnum{color:var(--gold)}
+.mtgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.1rem}
+.tcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.4rem;position:relative;overflow:hidden;transition:border-color .3s}
+.tcard.act{border-color:rgba(0,201,167,.35)}.tcard.urg{border-color:rgba(255,77,109,.4);animation:urgP 1.5s infinite}
+.tcn{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--gold);line-height:1}
+.tcna{font-size:.83rem;color:var(--soft);margin-top:.2rem}.tcs{font-size:.75rem;color:var(--muted);margin-top:.1rem}
+.tcw{margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--border)}
+.tcwl{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.35rem}
+.tct{font-family:'Syne',sans-serif;font-size:1.7rem;font-weight:800;color:var(--teal)}
+.tct.wrn{color:var(--gold)}.tct.urg{color:var(--red)}
+.tcb{height:4px;background:rgba(255,255,255,.06);border-radius:999px;margin-top:.7rem;overflow:hidden}
+.tcbf{height:100%;border-radius:999px;transition:width 1s linear}
+.afl{display:flex;gap:.35rem;margin-top:.7rem;flex-wrap:wrap}
+.af{font-size:.66rem;padding:.2rem .6rem;border-radius:999px;font-weight:600}
+.af10{background:rgba(240,180,41,.1);color:var(--gold)}.af5{background:rgba(255,77,109,.1);color:var(--red)}
+.af10.sent{background:rgba(240,180,41,.25);border:1px solid rgba(240,180,41,.4)}
+.af5.sent{background:rgba(255,77,109,.25);border:1px solid rgba(255,77,109,.4)}
+.afd{background:rgba(0,201,167,.12);color:var(--teal)}
+.qhdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.4rem}
+.lbadge{display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--teal);font-weight:600;background:rgba(0,201,167,.1);padding:.28rem .75rem;border-radius:999px;border:1px solid rgba(0,201,167,.2)}
+.ldot{width:6px;height:6px;border-radius:50%;background:var(--teal);animation:pulse 1.2s infinite}
+.srow{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.9rem;margin-bottom:1.6rem}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.3rem}
+.sv{font-family:'Syne',sans-serif;font-size:1.9rem;font-weight:800}
+.sv.tl{color:var(--teal)}.sv.gd{color:var(--gold)}.sv.bl{color:var(--blue)}
+.sl{font-size:.72rem;color:var(--muted);margin-top:.2rem}
+.qtw{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;overflow-x:auto}
+.qth{display:grid;grid-template-columns:75px 1fr 1fr 1fr 85px 105px 125px;padding:.75rem 1.1rem;background:var(--card);font-size:.68rem;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;gap:.4rem;min-width:650px}
+.qrow{display:grid;grid-template-columns:75px 1fr 1fr 1fr 85px 105px 125px;padding:.85rem 1.1rem;border-top:1px solid var(--border);font-size:.81rem;gap:.4rem;align-items:center;transition:background .15s;min-width:650px}
+.qrow:hover{background:rgba(255,255,255,.02)}
+.ttag{font-family:'Syne',sans-serif;font-weight:800;font-size:.95rem;color:var(--gold)}
+.pill{padding:.22rem .65rem;border-radius:999px;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;display:inline-block;white-space:nowrap}
+.pw{background:rgba(107,132,168,.15);color:var(--soft)}.p10{background:rgba(240,180,41,.15);color:var(--gold)}
+.p5{background:rgba(255,77,109,.15);color:var(--red)}.pc{background:rgba(0,201,167,.15);color:var(--teal)}.pd{background:rgba(74,158,255,.1);color:var(--blue)}
+.rt{font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;color:var(--teal)}
+.rt.wrn{color:var(--gold)}.rt.urg{color:var(--red)}
+.ab{padding:.26rem .55rem;border-radius:6px;font-size:.68rem;font-weight:700;cursor:pointer;border:none;margin-right:.2rem;font-family:'Syne',sans-serif;transition:all .15s}
+.ac{background:rgba(0,201,167,.15);color:var(--teal)}.ac:hover{background:rgba(0,201,167,.3)}
+.ad{background:rgba(74,158,255,.12);color:var(--blue)}.ad:hover{background:rgba(74,158,255,.25)}
+.as{background:rgba(255,77,109,.1);color:var(--red)}.as:hover{background:rgba(255,77,109,.2)}
+.est{text-align:center;padding:2.5rem 1rem;color:var(--muted)}.est .ei{font-size:2.8rem;margin-bottom:.7rem}
+.slog{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;max-height:480px;overflow-y:auto}
+.slh{padding:.75rem 1.3rem;background:var(--card);font-size:.7rem;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;position:sticky;top:0}
+.sli{padding:.9rem 1.3rem;border-top:1px solid var(--border);display:flex;gap:.9rem;align-items:flex-start}
+.slic{font-size:1.3rem;flex-shrink:0;margin-top:1px}
+.slt{font-size:.7rem;color:var(--teal);font-weight:600;margin-bottom:.18rem}
+.slm{font-size:.8rem;color:var(--text);line-height:1.5}
+.sls{font-size:.66rem;color:var(--muted);margin-top:.25rem}
+.sl10{border-left:3px solid var(--gold)}.sl5{border-left:3px solid var(--red)}.slnow{border-left:3px solid var(--teal)}
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.75rem 1.3rem;display:flex;align-items:center;gap:.7rem;font-size:.83rem;box-shadow:var(--shadow);z-index:9997;transition:transform .3s ease;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{border-color:rgba(0,201,167,.4)}.toast.warning{border-color:rgba(240,180,41,.4)}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+@media(max-width:640px){.topbar,.panel,.nav-tabs{padding-left:1rem;padding-right:1rem}}
+</style>
+</head>
+<body>
+<div id="notifStack"></div>
+
+<!-- AUTH -->
+<div id="authPage" class="page active">
+  <div class="auth-card">
+    <div class="alogo"><span>Smart</span><em>Token</em></div>
+    <div class="asub">Bank Queue Notification System</div>
+    <div class="tab-row">
+      <button class="tab active" onclick="switchTab('login',this)">Login</button>
+      <button class="tab" onclick="switchTab('register',this)">Register</button>
+    </div>
+    <div id="loginForm">
+      <div class="fg"><label>Username</label><input type="text" id="loginUser" placeholder="Enter username"/></div>
+      <div class="fg"><label>Password</label><input type="password" id="loginPass" placeholder="Enter password"/></div>
+      <button class="btn btn-t" onclick="doLogin()">Login →</button>
+      <div class="aerr" id="loginErr">Invalid username or password.</div>
+    </div>
+    <div id="registerForm" style="display:none">
+      <div class="fg"><label>Full Name</label><input type="text" id="regName" placeholder="Your full name"/></div>
+      <div class="fg"><label>Phone Number</label><input type="tel" id="regPhone" placeholder="+91 98765 43210"/></div>
+      <div class="fg"><label>Username</label><input type="text" id="regUser" placeholder="Choose username"/></div>
+      <div class="fg"><label>Password</label><input type="password" id="regPass" placeholder="Create password"/></div>
+      <div class="fg"><label>Role</label>
+        <select id="regRole"><option value="customer">Customer</option><option value="admin">Bank Staff / Admin</option></select>
+      </div>
+      <button class="btn btn-g" onclick="doRegister()">Create Account →</button>
+      <div class="aerr" id="regErr"></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appPage" class="page">
+  <div class="topbar">
+    <div class="tlogo"><span>Smart</span><em>Token</em></div>
+    <div class="tr">
+      <div class="clk" id="clk">00:00:00</div>
+      <div class="sms-status sms-off" id="smsBadge"><span class="sdot"></span><span id="smsBadgeTxt">SMS Ready</span></div>
+      <div><div class="un" id="tbName">--</div><div class="ur" id="tbRole">--</div></div>
+      <div class="av" id="tbAv">?</div>
+      <button class="lbtn" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPanel('tokenPanel',this)">🎫 Get Token</button>
+    <button class="nav-tab" onclick="showPanel('myTokensPanel',this)">⏱ My Tokens</button>
+    <button class="nav-tab" onclick="showPanel('queuePanel',this)">📋 Queue Board</button>
+    <button class="nav-tab" onclick="showPanel('smsPanel',this)">📲 Alert Log</button>
+    <button class="nav-tab admin-only" onclick="showPanel('adminPanel',this)" style="display:none">⚙️ Admin</button>
+  </div>
+
+  <!-- GET TOKEN -->
+  <div id="tokenPanel" class="panel active">
+    <div class="ptitle">Generate Your Token</div>
+    <div class="psub">Get a token — receive real SMS alerts before your turn!</div>
+    <div class="fcard">
+      <div class="frow">
+        <div class="fg"><label>Full Name</label><input type="text" id="tkName" placeholder="Your name"/></div>
+        <div class="fg"><label>Phone Number</label><input type="tel" id="tkPhone" placeholder="+91 98765 43210"/></div>
+      </div>
+      <div class="fg">
+        <label>Select Banking Service</label>
+        <div class="sgrid">
+          <div class="sopt" onclick="selSvc(this,'Cash Deposit')"><div class="si">💵</div><div class="sn">Cash Deposit</div></div>
+          <div class="sopt" onclick="selSvc(this,'Cash Withdrawal')"><div class="si">🏧</div><div class="sn">Cash Withdrawal</div></div>
+          <div class="sopt" onclick="selSvc(this,'Account Opening')"><div class="si">📂</div><div class="sn">Account Opening</div></div>
+          <div class="sopt" onclick="selSvc(this,'Loan Enquiry')"><div class="si">🏦</div><div class="sn">Loan Enquiry</div></div>
+          <div class="sopt" onclick="selSvc(this,'Fixed Deposit')"><div class="si">📈</div><div class="sn">Fixed Deposit</div></div>
+          <div class="sopt" onclick="selSvc(this,'Cheque Services')"><div class="si">📝</div><div class="sn">Cheque Services</div></div>
+          <div class="sopt" onclick="selSvc(this,'KYC Update')"><div class="si">🪪</div><div class="sn">KYC Update</div></div>
+          <div class="sopt" onclick="selSvc(this,'General Enquiry')"><div class="si">💬</div><div class="sn">General Enquiry</div></div>
+        </div>
+      </div>
+      <div class="fg"><label>Alert Preference</label>
+        <select id="tkAlert">
+          <option value="both">Both alerts (10 min + 5 min)</option>
+          <option value="10">10 minutes only</option>
+          <option value="5">5 minutes only</option>
+        </select>
+      </div>
+      <button class="btn btn-g" onclick="generateToken()" style="width:auto;padding:.8rem 2rem">🎫 Generate My Token</button>
+      <div class="tres" id="tokenResult">
+        <div style="font-size:.7rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:.4rem">Your Token Number</div>
+        <div class="tbig" id="rTN">--</div>
+        <div class="trow">
+          <div class="tii">Name<strong id="rN">--</strong></div>
+          <div class="tii">Service<strong id="rS">--</strong></div>
+          <div class="tii">Position<strong id="rP">--</strong></div>
+          <div class="tii">Est. Wait<strong id="rW">--</strong></div>
+        </div>
+        <div class="cbadge" id="rCB">
+          <div>
+            <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.25rem">Live Countdown</div>
+            <div class="cnum" id="rT">--:--</div>
+          </div>
+          <div style="font-size:.78rem;color:var(--soft)" id="rAM"></div>
+        </div>
+        <div style="font-size:.73rem;color:var(--muted);margin-top:.8rem">📱 Real SMS → <span id="rPh" style="color:var(--teal);font-weight:600"></span></div>
+        <button class="btn btn-o" style="width:auto;padding:.45rem 1.1rem;margin-top:.8rem;font-size:.8rem" onclick="showPanel('myTokensPanel',document.querySelectorAll('.nav-tab')[1])">View My Tokens ⏱</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MY TOKENS -->
+  <div id="myTokensPanel" class="panel">
+    <div class="ptitle">My Tokens</div>
+    <div class="psub">Live countdown timers — real SMS at 10 min &amp; 5 min before your turn.</div>
+    <div class="mtgrid" id="myTokensGrid"><div class="est"><div class="ei">🎫</div><div>No tokens yet.</div></div></div>
+  </div>
+
+  <!-- QUEUE BOARD -->
+  <div id="queuePanel" class="panel">
+    <div class="qhdr">
+      <div><div class="ptitle">Live Queue Board</div><div class="psub" style="margin:0">All tokens with live timers</div></div>
+      <div style="display:flex;gap:.7rem;align-items:center;flex-wrap:wrap">
+        <div class="lbadge"><span class="ldot"></span>Live</div>
+        <button class="btn btn-t" style="width:auto;padding:.45rem 1rem;font-size:.78rem" onclick="renderQueue()">↻ Refresh</button>
+      </div>
+    </div>
+    <div class="srow">
+      <div class="sc"><div class="sv tl" id="stTotal">0</div><div class="sl">Total Tokens</div></div>
+      <div class="sc"><div class="sv gd" id="stWait">0</div><div class="sl">Waiting</div></div>
+      <div class="sc"><div class="sv bl" id="stCall">0</div><div class="sl">Called</div></div>
+      <div class="sc"><div class="sv" style="color:var(--soft)" id="stDone">0</div><div class="sl">Done</div></div>
+    </div>
+    <div class="qtw">
+      <div class="qth"><div>Token</div><div>Name</div><div>Phone</div><div>Service</div><div>Timer</div><div>Status</div><div>Actions</div></div>
+      <div id="queueBody"></div>
+    </div>
+  </div>
+
+  <!-- ALERT LOG -->
+  <div id="smsPanel" class="panel">
+    <div class="ptitle">Alert Log</div>
+    <div class="psub">All real SMS notifications sent</div>
+    <div class="slog"><div class="slh">📲 Sent Notifications</div><div id="smsLogBody"><div class="est"><div class="ei">📭</div><div>No alerts yet</div></div></div></div>
+  </div>
+
+  <!-- ADMIN -->
+  <div id="adminPanel" class="panel">
+    <div class="ptitle">Admin Controls</div>
+    <div class="psub">Configure queue settings</div>
+    <div class="fcard" style="max-width:460px">
+      <div class="fg">
+        <label>Service Time per Token (seconds)</label>
+        <input type="number" id="adminSvc" value="60" min="5" max="3600"/>
+        <div style="font-size:.73rem;color:var(--muted);margin-top:.35rem">60 = 1 min per token (demo). Use 420 for real 7-min banking.</div>
+      </div>
+      <div class="fg"><label>Branch Name</label><input type="text" id="adminBr" value="Main Branch — Counter A"/></div>
+      <button class="btn btn-t" style="width:auto;padding:.7rem 1.7rem" onclick="saveSettings()">Save Settings</button>
+      <button class="btn btn-r" style="width:auto;padding:.7rem 1.7rem;margin-top:.7rem;display:block" onclick="clearQueue()">🗑 Clear Queue</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastIcon">✅</span> <span id="toastMsg">Done!</span></div>
+
+<script>
+// ═══════════════════════════════════════════
+// SMS SERVER URL — calls your local server.js
+// ═══════════════════════════════════════════
+const SMS_SERVER = 'http://localhost:3000';
+
+// ═══════════════════════════════════════════
+// SEND REAL SMS via your Node.js server
+// ═══════════════════════════════════════════
+async function sendRealSMS(phone, message) {
+  try {
+    const cleanPhone = phone.replace('+91','').replace(/\s/g,'').replace(/-/g,'').trim();
+    const url = `${SMS_SERVER}/send-sms?phone=${encodeURIComponent(cleanPhone)}&message=${encodeURIComponent(message)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.success) {
+      console.log('✅ Real SMS sent!');
+      updateSmsBadge(true);
+      showToast('📲 Real SMS sent! ✅', 'success');
+      return true;
+    } else {
+      console.warn('SMS failed:', data.error);
+      showToast('SMS: ' + (data.error || 'Failed'), 'warning');
+      return false;
+    }
+  } catch(err) {
+    console.warn('Server not reachable — SMS skipped');
+    return false;
+  }
+}
+
+function updateSmsBadge(success) {
+  const b = document.getElementById('smsBadge');
+  const t = document.getElementById('smsBadgeTxt');
+  if (success) {
+    b.className = 'sms-status sms-on';
+    t.textContent = 'SMS Active ✅';
+  }
+}
+
+// Check if server is running on load
+async function checkServer() {
+  try {
+    const res = await fetch(`${SMS_SERVER}/`);
+    const data = await res.json();
+    if (data.status) updateSmsBadge(true);
+  } catch(e) {
+    console.log('Server not running — SMS will be skipped');
+  }
+}
+
+// ═══════════════════════════════════════════
+// DATABASE
+// ═══════════════════════════════════════════
+const DB = {
+  users:[
+    {username:'admin',password:'admin123',name:'Bank Admin',phone:'+91 99999 00001',role:'admin'},
+    {username:'staff',password:'staff123',name:'Bank Staff',phone:'+91 99999 00002',role:'admin'},
+  ],
+  tokens:[],log:[],
+  settings:{svcSec:60,branch:'Main Branch — Counter A'},
+  seq:0,currentUser:null
+};
+
+// Clock
+setInterval(()=>{
+  const el=document.getElementById('clk');
+  if(el) el.textContent=new Date().toLocaleTimeString('en-IN',{hour12:false});
+},1000);
+
+// Timer engine
+let eng=null;
+function startEngine(){
+  clearInterval(eng);
+  eng=setInterval(tick,1000);
+}
+
+function tick(){
+  const now=Date.now();
+  DB.tokens.forEach(t=>{
+    if(t.status==='done'||t.status==='called') return;
+    const s=Math.max(0,Math.round((t.callAt-now)/1000));
+    t.secsLeft=s;
+    const p=t.alertPref;
+    if(p!=='5'&&!t.a10&&s<=600&&s>0){t.a10=true;t.status='alert10';fireAlert(t,'10min');}
+    if(p!=='10'&&!t.a5&&s<=300&&s>0){t.a5=true;t.status='alert5';fireAlert(t,'5min');}
+    if(s===0&&t.status!=='called'){t.status='called';fireAlert(t,'now');}
+  });
+  refreshDisplays();
+}
+
+function fmtT(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+
+function refreshDisplays(){
+  DB.tokens.forEach(t=>{
+    const s=t.secsLeft||0;
+    const fmt=t.status==='called'?'NOW!':t.status==='done'?'Done ✓':fmtT(s);
+    const tc=s<=300?'urg':s<=600?'wrn':'';
+    const td=document.getElementById('td_'+t.id);
+    if(td){td.textContent=fmt;td.className='tct'+(tc?' '+tc:'');}
+    const pb=document.getElementById('pb_'+t.id);
+    if(pb&&t.totalSecs>0){
+      const pct=Math.min(100,Math.round((1-s/t.totalSecs)*100));
+      pb.style.width=pct+'%';
+      pb.style.background=s<=300?'var(--red)':s<=600?'var(--gold)':'var(--teal)';
+    }
+    const card=document.getElementById('card_'+t.id);
+    if(card&&t.status!=='done') card.className=s<=300?'tcard urg':'tcard act';
+    const rt=document.getElementById('rt_'+t.id);
+    if(rt){rt.textContent=fmt;rt.className='rt'+(tc?' '+tc:'');}
+    const rc=document.getElementById('rT');
+    const rcb=document.getElementById('rCB');
+    if(rc&&document.getElementById('rTN').textContent===t.id){
+      rc.textContent=fmt;
+      if(rcb) rcb.className='cbadge'+(s<=300?' urg':s<=600?' wrn':'');
+    }
+    const f10=document.getElementById('f10_'+t.id);
+    const f5=document.getElementById('f5_'+t.id);
+    if(f10&&t.a10){f10.textContent='✅ 10-min Sent';f10.classList.add('sent');}
+    if(f5&&t.a5){f5.textContent='✅ 5-min Sent';f5.classList.add('sent');}
+  });
+}
+
+// ═══════════════════════════════════════════
+// FIRE ALERT — Real SMS + In-app popup
+// ═══════════════════════════════════════════
+function fireAlert(token, type){
+  const br=DB.settings.branch;
+  const cfg={
+    '10min':{
+      sms:`Dear ${token.name}, your SmartToken ${token.id} is approaching! About 10 minutes remaining. Please head to ${br}. Service: ${token.service}.`,
+      inT:'⏰ 10-Minute Alert!',
+      inM:`${token.name}, token ${token.id} is ~10 min away. Head to ${br} now!`,
+      cls:'n10',icon:'⏰',bar:'ng',logT:'10min'
+    },
+    '5min':{
+      sms:`URGENT: ${token.name}, your SmartToken ${token.id} is only 5 minutes away! Please arrive at ${br} immediately. Service: ${token.service}.`,
+      inT:'⚡ 5-Minute Alert!',
+      inM:`URGENT! ${token.name}, token ${token.id} is 5 min away. Go to ${br} NOW!`,
+      cls:'n5',icon:'⚡',bar:'nr',logT:'5min'
+    },
+    'now':{
+      sms:`${token.name}, your SmartToken ${token.id} is NOW BEING CALLED at ${br}! Please report to the counter for: ${token.service}. Token expires in 3 minutes.`,
+      inT:'📣 Your Turn NOW!',
+      inM:`${token.name}, token ${token.id} is CALLED NOW! Report to ${br} immediately.`,
+      cls:'nnow',icon:'📣',bar:'ntl',logT:'now'
+    }
+  };
+  const c=cfg[type];if(!c)return;
+
+  // 1. REAL SMS via server
+  sendRealSMS(token.phone, c.sms);
+
+  // 2. Vibrate
+  if(navigator.vibrate){
+    if(type==='now') navigator.vibrate([300,100,300,100,300]);
+    else if(type==='5min') navigator.vibrate([200,100,200]);
+    else navigator.vibrate([150]);
+  }
+
+  // 3. In-app popup
+  inAppPop(c.inT, c.inM, `Token: ${token.id} • Phone: ${token.phone}`, c.cls, c.icon, c.bar);
+
+  // 4. Log
+  DB.log.unshift({to:token.phone,icon:c.icon,msg:c.sms,type:c.logT,ts:new Date().toLocaleTimeString(),token:token.id});
+  renderLog();renderQueue();
+}
+
+function inAppPop(title,msg,sub,cls,icon,barCls){
+  const stack=document.getElementById('notifStack');
+  const d=document.createElement('div');
+  d.className='npop '+cls;
+  d.innerHTML=`<div class="ni">${icon}</div>
+  <div class="nb"><div class="nt">${title}</div><div class="nm">${msg}</div><div class="ns">${sub}</div></div>
+  <button class="nc" onclick="this.parentElement.remove()">✕</button>
+  <div class="nbar ${barCls}"></div>`;
+  stack.appendChild(d);
+  setTimeout(()=>{if(d.parentElement)d.remove();},7500);
+}
+
+// AUTH
+function switchTab(tab,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('loginForm').style.display=tab==='login'?'block':'none';
+  document.getElementById('registerForm').style.display=tab==='register'?'block':'none';
+}
+function doLogin(){
+  const u=val('loginUser'),p=val('loginPass');
+  const user=DB.users.find(x=>x.username===u&&x.password===p);
+  if(!user){show('loginErr');return;}
+  hide('loginErr');DB.currentUser=user;enterApp();
+}
+function doRegister(){
+  const name=val('regName'),phone=val('regPhone'),user=val('regUser'),pass=val('regPass'),role=val('regRole');
+  if(!name||!phone||!user||!pass){setErr('regErr','Fill all fields.');return;}
+  if(DB.users.find(x=>x.username===user)){setErr('regErr','Username taken.');return;}
+  DB.users.push({username:user,password:pass,name,phone,role});
+  DB.currentUser=DB.users[DB.users.length-1];enterApp();
+}
+function enterApp(){
+  const u=DB.currentUser;
+  document.getElementById('tbName').textContent=u.name;
+  document.getElementById('tbRole').textContent=u.role==='admin'?'Bank Staff / Admin':'Customer';
+  document.getElementById('tbAv').textContent=u.name[0].toUpperCase();
+  document.getElementById('tkName').value=u.name;
+  document.getElementById('tkPhone').value=u.phone;
+  document.querySelectorAll('.admin-only').forEach(el=>el.style.display=u.role==='admin'?'':'none');
+  document.getElementById('authPage').classList.remove('active');
+  document.getElementById('appPage').classList.add('active');
+  showPanel('tokenPanel',document.querySelector('.nav-tab'));
+  renderQueue();renderLog();renderMyTokens();
+  startEngine();
+  checkServer();
+}
+function doLogout(){
+  DB.currentUser=null;clearInterval(eng);
+  document.getElementById('appPage').classList.remove('active');
+  document.getElementById('authPage').classList.add('active');
+  document.getElementById('tokenResult').style.display='none';
+}
+
+// TOKEN
+let selSvc_='';
+function selSvc(el,name){
+  document.querySelectorAll('.sopt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');selSvc_=name;
+}
+function generateToken(){
+  const name=val('tkName'),phone=val('tkPhone'),pref=val('tkAlert');
+  if(!name){showToast('Enter your name','warning');return;}
+  if(!phone){showToast('Enter your phone number','warning');return;}
+  if(!selSvc_){showToast('Select a banking service','warning');return;}
+  DB.seq++;
+  const pre=['A','B','C','D','E'][Math.floor((DB.seq-1)/25)%5];
+  const id=pre+'-'+String(DB.seq).padStart(3,'0');
+  const waiting=DB.tokens.filter(t=>!['done','called'].includes(t.status));
+  const pos=waiting.length+1;
+  const totalSecs=pos*DB.settings.svcSec;
+  const callAt=Date.now()+totalSecs*1000;
+  const token={id,name,phone,service:selSvc_,alertPref:pref,status:'waiting',
+    createdAt:new Date().toLocaleTimeString(),callAt,totalSecs,secsLeft:totalSecs,
+    a10:false,a5:false,username:DB.currentUser?.username};
+  DB.tokens.push(token);
+
+  document.getElementById('rTN').textContent=id;
+  document.getElementById('rN').textContent=name;
+  document.getElementById('rS').textContent=selSvc_;
+  document.getElementById('rP').textContent='#'+pos+' in queue';
+  document.getElementById('rW').textContent='~'+Math.ceil(totalSecs/60)+' min';
+  document.getElementById('rT').textContent=fmtT(totalSecs);
+  document.getElementById('rPh').textContent=phone;
+  document.getElementById('rCB').className='cbadge';
+  const am={both:'10 min & 5 min','10':'10 min only','5':'5 min only'};
+  document.getElementById('rAM').textContent='Alerts at: '+am[pref];
+  document.getElementById('tokenResult').style.display='block';
+
+  const confirmMsg=`Hello ${name}! Your SmartToken is ${id} for ${selSvc_} at ${DB.settings.branch}. Queue position: #${pos}. Estimated wait: ~${Math.ceil(totalSecs/60)} min. You will receive real SMS alerts before your turn.`;
+  sendRealSMS(phone, confirmMsg);
+  inAppPop('🎫 Token Generated!',`Token ${id} for ${selSvc_}`,`Queue #${pos} | Est. ~${Math.ceil(totalSecs/60)} min | ${phone}`,'nconf','🎫','nbl');
+  DB.log.unshift({to:phone,icon:'🎫',msg:confirmMsg,type:'confirm',ts:new Date().toLocaleTimeString(),token:id});
+  renderQueue();renderLog();renderMyTokens();
+  showToast('Token '+id+' generated!','success');
+}
+
+// MY TOKENS
+function renderMyTokens(){
+  const grid=document.getElementById('myTokensGrid');
+  const u=DB.currentUser;
+  const list=u?.role==='admin'?DB.tokens:DB.tokens.filter(t=>t.username===u?.username);
+  if(!list.length){grid.innerHTML='<div class="est"><div class="ei">🎫</div><div>No tokens yet.</div></div>';return;}
+  const slbl={waiting:'⏳ Waiting',alert10:'⏰ 10-min Sent',alert5:'⚡ 5-min Sent',called:'📣 Called!',done:'✅ Done'};
+  grid.innerHTML=list.map(t=>{
+    const s=t.secsLeft||0;
+    const fmt=t.status==='called'?'NOW!':t.status==='done'?'Done ✓':fmtT(s);
+    const tc=s<=300?'urg':s<=600?'wrn':'';
+    const pct=t.totalSecs>0?Math.min(100,Math.round((1-s/t.totalSecs)*100)):100;
+    const bc=s<=300?'var(--red)':s<=600?'var(--gold)':'var(--teal)';
+    const cc=t.status==='done'?'tcard':(s<=300?'tcard urg':'tcard act');
+    return `<div class="${cc}" id="card_${t.id}">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.4rem">
+        <div><div class="tcn">${t.id}</div><div class="tcna">${t.name}</div><div class="tcs">📋 ${t.service}</div></div>
+        <div style="text-align:right"><div style="font-size:.68rem;color:var(--muted)">${t.createdAt}</div>
+        <div style="font-size:.73rem;margin-top:.3rem">${slbl[t.status]||t.status}</div></div>
+      </div>
+      <div class="tcw">
+        <div class="tcwl">⏱ Time Until Your Turn</div>
+        <div class="tct${tc?' '+tc:''}" id="td_${t.id}">${fmt}</div>
+        <div class="tcb"><div class="tcbf" id="pb_${t.id}" style="width:${pct}%;background:${bc}"></div></div>
+      </div>
+      <div class="afl">
+        <span class="af af10${t.a10?' sent':''}" id="f10_${t.id}">${t.a10?'✅ 10-min Sent':'⏰ 10-min Alert'}</span>
+        <span class="af af5${t.a5?' sent':''}" id="f5_${t.id}">${t.a5?'✅ 5-min Sent':'⚡ 5-min Alert'}</span>
+        ${t.status==='done'?'<span class="af afd">✅ Served</span>':''}
+      </div>
+      <div style="margin-top:.7rem;font-size:.72rem;color:var(--muted)">📱 ${t.phone}</div>
+    </div>`;
+  }).join('');
+}
+
+// QUEUE
+function renderQueue(){
+  const body=document.getElementById('queueBody');
+  const tokens=DB.tokens;
+  document.getElementById('stTotal').textContent=tokens.length;
+  document.getElementById('stWait').textContent=tokens.filter(t=>['waiting','alert10','alert5'].includes(t.status)).length;
+  document.getElementById('stCall').textContent=tokens.filter(t=>t.status==='called').length;
+  document.getElementById('stDone').textContent=tokens.filter(t=>t.status==='done').length;
+  if(!tokens.length){body.innerHTML='<div class="est"><div class="ei">🎫</div><div>No tokens yet</div></div>';return;}
+  const isAdmin=DB.currentUser?.role==='admin';
+  const sc={waiting:'pw',alert10:'p10',alert5:'p5',called:'pc',done:'pd'};
+  const sl={waiting:'Waiting',alert10:'⏰ 10-min',alert5:'⚡ 5-min',called:'📣 Called',done:'✅ Done'};
+  body.innerHTML=tokens.map((t,i)=>{
+    const s=t.secsLeft||0;
+    const fmt=t.status==='called'?'NOW!':t.status==='done'?'Done':fmtT(s);
+    const rc='rt'+(s<=300?' urg':s<=600?' wrn':'');
+    const acts=isAdmin?`
+      <button class="ab ac" onclick="callTok(${i})" ${['waiting','alert10','alert5'].includes(t.status)?'':'disabled style="opacity:.3"'}>Call</button>
+      <button class="ab ad" onclick="doneTok(${i})" ${t.status==='called'?'':'disabled style="opacity:.3"'}>Done</button>
+      <button class="ab as" onclick="skipTok(${i})" ${t.status!=='done'?'':'disabled style="opacity:.3"'}>Skip</button>`:'—';
+    return `<div class="qrow">
+      <div class="ttag">${t.id}</div>
+      <div>${t.name}</div>
+      <div style="font-size:.76rem;color:var(--muted)">${t.phone}</div>
+      <div style="font-size:.78rem">${t.service}</div>
+      <div class="${rc}" id="rt_${t.id}">${fmt}</div>
+      <div><span class="pill ${sc[t.status]||'pw'}">${sl[t.status]||t.status}</span></div>
+      <div>${acts}</div>
+    </div>`;
+  }).join('');
+}
+
+function callTok(i){const t=DB.tokens[i];if(t.status==='done')return;t.status='called';t.secsLeft=0;fireAlert(t,'now');renderQueue();renderMyTokens();showToast('Token '+t.id+' called!','success');}
+function doneTok(i){DB.tokens[i].status='done';DB.tokens[i].secsLeft=0;renderQueue();renderMyTokens();showToast('Completed ✅','success');}
+function skipTok(i){DB.tokens[i].status='done';DB.tokens[i].secsLeft=0;renderQueue();renderMyTokens();showToast('Skipped','warning');}
+function clearQueue(){if(!confirm('Clear queue?'))return;DB.tokens=[];DB.seq=0;renderQueue();renderMyTokens();renderLog();showToast('Cleared','warning');}
+function saveSettings(){DB.settings.svcSec=parseInt(val('adminSvc'))||60;DB.settings.branch=val('adminBr')||DB.settings.branch;showToast('Saved ✅','success');}
+
+function renderLog(){
+  const body=document.getElementById('smsLogBody');
+  if(!DB.log.length){body.innerHTML='<div class="est"><div class="ei">📭</div><div>No alerts yet</div></div>';return;}
+  const cls={'10min':'sl10','5min':'sl5','now':'slnow','confirm':''};
+  body.innerHTML=DB.log.map(s=>`
+    <div class="sli ${cls[s.type]||''}">
+      <div class="slic">${s.icon}</div>
+      <div><div class="slt">To: ${s.to} · Token: ${s.token}</div>
+        <div class="slm">${s.msg}</div><div class="sls">${s.ts}</div></div>
+    </div>`).join('');
+}
+
+function showPanel(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(id==='queuePanel')renderQueue();
+  if(id==='smsPanel')renderLog();
+  if(id==='myTokensPanel')renderMyTokens();
+}
+
+let toastT;
+function showToast(msg,type='success'){
+  const icons={success:'✅',warning:'⚠️'};
+  document.getElementById('toastMsg').textContent=msg;
+  document.getElementById('toastIcon').textContent=icons[type]||'✅';
+  const t=document.getElementById('toast');
+  t.className='toast show '+type;
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3000);
+}
+function val(id){return document.getElementById(id)?.value?.trim()||'';}
+function show(id){document.getElementById(id).style.display='block';}
+function hide(id){document.getElementById(id).style.display='none';}
+function setErr(id,msg){const el=document.getElementById(id);el.textContent=msg;el.style.display='block';}
+</script>
+</body>
+</html>
